@@ -1,0 +1,16 @@
+<html>
+  <style>
+    body{ 
+      font-size: 15pt;
+      font-family: arial;
+    }
+  </style>
+
+  <body>
+    <h2>Trainers in Current Location:</h2>
+    <div>
+        {% for n in data %}
+        <div>{{n}}</div>
+        {% endfor %}
+    </div>
+  </body>
