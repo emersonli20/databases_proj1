@@ -154,12 +154,12 @@ def trainer():
 def bag():
 
     # [*] get evolution items
-    cursor = g.conn.execute(text("""
+    cursor = g.conn.execute(text(f"""
                                  SELECT A.Name, E.Evolves_From, E.Evolves_Into 
                                  FROM Evolution_Item E
                                  JOIN Asset A ON A.Asset_ID = E.ItemID
                                  JOIN Owns O ON O.Asset_ID = A.Asset_ID
-                                 WHERE O.TrainID = '{My_TRAINER_ID}'
+                                 WHERE O.TrainID = '{MY_TRAINER_ID}'
                                  AND A.Asset_ID NOT IN 
                                     (
                                     SELECT H.ItemID
@@ -177,12 +177,12 @@ def bag():
     cursor.close()
 
     # [**] get battle items
-    cursor = g.conn.execute(text("""
+    cursor = g.conn.execute(text(f"""
                                  SELECT A.Name, B.PowerLVL 
                                  FROM Battle_Item B
                                  JOIN Asset A ON A.Asset_ID = B.ItemID
                                  JOIN Owns O ON O.Asset_ID = A.Asset_ID
-                                 WHERE O.TrainID = '{My_TRAINER_ID}'
+                                 WHERE O.TrainID = '{MY_TRAINER_ID}'
                                  AND A.Asset_ID NOT IN 
                                     (
                                     SELECT H.ItemID
