@@ -180,11 +180,6 @@ def trainer_buy():
                                  JOIN Owns O ON O.Asset_ID = A.Asset_ID
                                  WHERE O.TrainID = '{SELECTED_TRAINER_ID}'
                                  """))
-                                #  AND A.Asset_ID NOT IN 
-                                #     (
-                                #     SELECT H.ItemID
-                                #     FROM Holds H
-                                #     )
     battle_items = []
     results = cursor.mappings().all()
     for result in results:
@@ -401,10 +396,12 @@ def bag_use_evolution_item():
    # [*] get my pokemon
     #    [***] Make sure you can only use evolution item on pokemon that is not holding an item
     cursor = g.conn.execute(text(f"""
-                                SELECT P.PokeID, A.Name, P.PowerLVL
+                                SELECT P.PokeID, A.Name, P.PowerLVL, A2.Name AS "Held Item"
                                 FROM Pokemon P
                                 JOIN Asset A ON A.Asset_ID = P.PokeID
                                 JOIN Owns O ON O.Asset_ID = A.Asset_ID
+                                LEFT JOIN Holds H ON H.PokeID = P.PokeID
+                                LEFT JOIN Asset A2 ON A2.Asset_ID = H.ItemID
                                 WHERE A.Name = 
                                     (
                                     SELECT E.Evolves_From
@@ -422,8 +419,6 @@ def bag_use_evolution_item():
       pokemon.append(result)
     cursor.close()
 
-    print(pokemon)
-
     context = dict(data = pokemon)
 
     return render_template("bag_use_evolution_item.html", **context)
@@ -435,7 +430,7 @@ def bag_give_item():
    # [*] get my pokemon
     # [***] Make sure you can only give item to pokemon that doesn't have an item
     cursor = g.conn.execute(text(f"""
-                                SELECT P.PokeID, A.Name, P.PowerLVL, A.Cost, A2.Name AS "Held Item"
+                                SELECT P.PokeID, A.Name, P.PowerLVL, A2.Name AS "Held Item"
                                 FROM Pokemon P
                                 INNER JOIN Owns O ON O.Asset_ID = P.PokeID
                                 INNER JOIN Asset A ON A.Asset_ID = O.Asset_ID
@@ -451,8 +446,6 @@ def bag_give_item():
     for result in results:
       pokemon.append(result)
     cursor.close()
-
-    print(pokemon)
 
     context = dict(data = pokemon)
 
@@ -482,8 +475,6 @@ def pokemon():
     for result in results:
       pokemon.append(result)
     cursor.close()
-
-    print(pokemon)
 
     context = dict(data = pokemon)
 
