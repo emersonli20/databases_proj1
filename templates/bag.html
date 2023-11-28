@@ -1,4 +1,13 @@
 <html>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <h1>Bag</h1>
+  <div class="navbar">
+    <a href="/">Home</a>
+    <a href="location">Map</a>
+    <a href="trainer">Trainers</a>
+    <a href="bag">Bag</a>
+    <a href="pokemon">My Pokemon</a>
+  </div> 
   <style>
     body{ 
       font-size: 15pt;
@@ -7,7 +16,9 @@
   </style>
 
   <body>
-    <h1>My Bag</h1>
+
+    <img src="{{ url_for('static', filename='bag.jpg') }}" alt="Bag Image" width="30%" height="auto">
+    
     <h2>Evolution Items:</h2>
     <table border="1">
       <tr>

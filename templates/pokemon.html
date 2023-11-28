@@ -1,4 +1,13 @@
 <html>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <h1>Pokemon</h1>
+  <div class="navbar">
+    <a href="/">Home</a>
+    <a href="location">Map</a>
+    <a href="trainer">Trainers</a>
+    <a href="bag">Bag</a>
+    <a href="pokemon">My Pokemon</a>
+  </div> 
   <style>
     body{ 
       font-size: 15pt;
@@ -6,6 +15,7 @@
     }
   </style>
 
+  <img src="{{ url_for('static', filename='poke.jpg') }}" alt="Poke Image" width="50%" height="auto">
   <h2>My Pokemon:</h2>
     <table border="1">
       <tr>
@@ -25,12 +35,3 @@
         </tr>
       {% endfor %}
     </table>
-
-  <body>
-    <h2>My Pokemon:</h2>
-    <div>
-        {% for n in data %}
-        <div>{{n}}</div>
-        {% endfor %}
-    </div>
-  </body>

@@ -1,4 +1,13 @@
 <html>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <h1>Map</h1>
+  <div class="navbar">
+    <a href="/">Home</a>
+    <a href="location">Map</a>
+    <a href="trainer">Trainers</a>
+    <a href="bag">Bag</a>
+    <a href="pokemon">My Pokemon</a>
+  </div> 
   <style>
     body{ 
       font-size: 15pt;
@@ -6,6 +15,7 @@
     }
   </style>
 
+  <img src="{{ url_for('static', filename='kanto.png') }}" alt="Kanto Image" width="30%" height="auto">
   <h2>Current Location</h2>
   <div>
     {% for n in my_data %}
