@@ -182,7 +182,7 @@ def button_clicked_change_location():
     print(f"Button clicked for row: {row_data}")
     return redirect(url_for('location'))
 
-# [**] ======= TRAINER =======
+# [*] ======= TRAINER =======
 @app.route('/trainer/')
 def trainer():
 
@@ -269,7 +269,7 @@ def button_clicked_buy_trainer():
     print(f"Button clicked for row: {row_data}")
     return redirect(url_for('trainer_buy'))
 
-# [*] BUTTON_CLICKED_BUY_TRAINER_ASSET
+# [**] BUTTON_CLICKED_BUY_TRAINER_ASSET
 @app.route('/button_clicked_buy_trainer_asset/', methods=['POST'])
 def button_clicked_buy_trainer_asset():
     # row_data is asset_id
@@ -305,6 +305,10 @@ def button_clicked_buy_trainer_asset():
     cursor.close()
 
     my_money_after = my_money_before - cost
+    if my_money_after < 0:
+        print("You cannot afford to buy")
+        return redirect(url_for('trainer'))
+
 
     g.conn.execute(text(f"""
                         UPDATE Trainer_Located_In
@@ -397,6 +401,31 @@ def button_clicked_sell_trainer_asset():
 
     cursor.close()
 
+    # [*] update cpu money
+    cursor = g.conn.execute(text(f"""
+                                SELECT T.money
+                                FROM Trainer_Located_In T
+                                WHERE T.TrainID = '{sel_trainid}'
+                                """))
+    g.conn.commit()
+
+    cpu_money_before = cursor.fetchone()[0]
+
+    cursor.close()
+
+    cpu_money_after = cpu_money_before - cost
+
+    if cpu_money_after < 0:
+        print("CPU cannot afford to buy")
+        return redirect(url_for('trainer'))
+
+    g.conn.execute(text(f"""
+                        UPDATE Trainer_Located_In
+                        SET Money = '{cpu_money_after}'
+                        WHERE TrainID = '{sel_trainid}'
+                        """))
+    g.conn.commit()
+
     # [*] update my money
     cursor = g.conn.execute(text(f"""
                                 SELECT T.money
@@ -418,26 +447,6 @@ def button_clicked_sell_trainer_asset():
                         """))
     g.conn.commit()
 
-    # [*] update cpu money
-    cursor = g.conn.execute(text(f"""
-                                SELECT T.money
-                                FROM Trainer_Located_In T
-                                WHERE T.TrainID = '{sel_trainid}'
-                                """))
-    g.conn.commit()
-
-    cpu_money_before = cursor.fetchone()[0]
-
-    cursor.close()
-
-    cpu_money_after = cpu_money_before - cost
-
-    g.conn.execute(text(f"""
-                        UPDATE Trainer_Located_In
-                        SET Money = '{cpu_money_after}'
-                        WHERE TrainID = '{sel_trainid}'
-                        """))
-    g.conn.commit()
 
     # [*] transfer ownership
     g.conn.execute(text(f"""
@@ -545,7 +554,7 @@ def trainer_buy():
     return render_template("trainer_buy.html", **context)
    
 
-# [**] === TRAINER/SELL ===
+# [*] === TRAINER/SELL ===
 @app.route('/trainer/sell/')
 def trainer_sell():
     # [*] specify who are selling to
@@ -649,7 +658,7 @@ def trainer_sell():
 
     return render_template("trainer_sell.html", **context)
 
-# [**] ======== BAG =========
+# [*] ======== BAG =========
 @app.route('/bag/')
 def bag():
 
@@ -731,7 +740,7 @@ def bag():
     
     context = dict(ei_data = evolution_items, bi_data = battle_items, oi_data = other_items)
 
-    # [**] display bag data in a table
+    # [*] display bag data in a table
     return render_template("bag.html", **context)
 
 # [*] BUTTON_CLICKED_GIVE_ITEM
@@ -766,7 +775,7 @@ def button_clicked_give_item():
     print(f"Button clicked for row: {row_data}")
     return redirect(url_for('bag_give_item'))
 
-# [**] BUTTON_CLICKED_GIVE_ITEM_POKEMON
+# [*] BUTTON_CLICKED_GIVE_ITEM_POKEMON
 @app.route('/button_clicked_give_item_pokemon/', methods=['POST'])
 def button_clicked_give_item_pokemon():
     pokeid = request.form.get('pokeid')
@@ -818,6 +827,8 @@ def button_clicked_use_evo_item():
 # [**] ======= BAG/USE_EVOLUTION_ITEM =========
 @app.route('/bag/use_evolution_item/')
 def bag_use_evolution_item():
+    my_trainid, _, _, _ = get_current()
+    
    # [*] get my pokemon
     #    [***] Make sure you can only use evolution item on pokemon that is not holding an item
     cursor = g.conn.execute(text(f"""
@@ -833,11 +844,11 @@ def bag_use_evolution_item():
                                     FROM Evolution_Item E
                                     WHERE E.ItemID = '{SELECTED_EVOLUTION_ITEM_ID}'
                                     )
-                                AND O.TrainID = '{MY_TRAINER_ID}'
+                                AND O.TrainID = '{my_trainid}'
                                 """))
 
 
-    # [**] display pokemon data in a table
+    # [*] display pokemon data in a table
     pokemon = []
     results = cursor.mappings().all()
     for result in results:
@@ -849,14 +860,14 @@ def bag_use_evolution_item():
     return render_template("bag_use_evolution_item.html", **context)
 
 
-# [**] ======= BAG/GIVE_ITEM ========
+# [*] ======= BAG/GIVE_ITEM ========
 @app.route('/bag/give_item/')
 def bag_give_item():
     my_trainid, my_train_name, _, my_loc_name = get_current()
     sel_give_itemid, sel_give_item_name = get_selected_give_item()
     
    # [*] get my pokemon
-    # [***] Make sure you can only give item to pokemon that doesn't have an item
+    # [*] Make sure you can only give item to pokemon that doesn't have an item
     cursor = g.conn.execute(text(f"""
                                 SELECT P.PokeID, A.Name, P.PowerLVL, A2.Name AS "Held Item", A2.Asset_ID AS ItemID
                                 FROM Pokemon P
@@ -868,7 +879,7 @@ def bag_give_item():
                                 """))
 
 
-    # [**] display pokemon data in a table
+    # [*] display pokemon data in a table
     pokemon = []
     results = cursor.mappings().all()
     for result in results:
@@ -880,13 +891,13 @@ def bag_give_item():
     return render_template("bag_give_item.html", **context)
 
 
-# [**] ======= POKEMON =======
+# [*] ======= POKEMON =======
 @app.route('/pokemon/')
 def pokemon():
 
     my_trainid, my_train_name, my_locid, my_loc_name = get_current()
 
-    # [**] get my pokemon
+    # [*] get my pokemon
     # [*] also display pokemon that don't hold an item
     cursor = g.conn.execute(text(f"""
                                 SELECT P.PokeID, A.Name, P.PowerLVL, A.Cost, A2.Name AS "Held Item", A2.Asset_ID AS ItemID
@@ -899,7 +910,7 @@ def pokemon():
                                 """))
 
 
-    # [**] display pokemon data in a table
+    # [*] display pokemon data in a table
     pokemon = []
     results = cursor.mappings().all()
     for result in results:
@@ -910,7 +921,7 @@ def pokemon():
 
     return render_template("pokemon.html", **context)
 
-# [**] BUTTON_CLICKED_TAKE_ITEM
+# [*] BUTTON_CLICKED_TAKE_ITEM
 @app.route('/button_clicked_take_item/', methods=['POST'])
 def button_clicked_take_item():
     pokeid = request.form.get('pokeid')
@@ -1017,7 +1028,7 @@ def get_current():
 
     return my_trainid, my_train_name, my_locid, my_loc_name
 
-# [**] === GET_MONEY ===
+# [*] === GET_MONEY ===
 def get_money():
     # [*] get current trainer id
     cursor = g.conn.execute(text(f"""
@@ -1036,7 +1047,7 @@ def get_money():
 
     my_trainid = my_trainids[0]
 
-    # [**] get money
+    # [*] get money
     cursor = g.conn.execute(text(f"""
                                 SELECT T.money
                                 FROM Trainer_Located_In T
