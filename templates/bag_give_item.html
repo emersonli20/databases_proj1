@@ -22,6 +22,7 @@
           <th>Name</th>
           <th>PowerLVL</th>
           <th>Held Item</th>
+          <th>ItemID</th>
           <th></th>
         </tr>
         {% for row in data %}
@@ -30,9 +31,11 @@
             <td>{{ row['name'] }}</td>
             <td>{{ row['powerlvl'] }}</td>
             <td>{{ row['Held Item'] }}</td>
+            <td>{{ row['itemid'] }}</td>
             <td>
               <form action="{{ url_for('button_clicked_give_item_pokemon') }}" method="post">
-                <input type="hidden" name="row_data" value="{{row['pokeid']}}">
+                <input type="hidden" name="pokeid" value="{{row['pokeid']}}">
+                <input type="hidden" name="itemid" value="{{row['itemid']}}">
                 <button>Give</button>
               </form>
             </td>

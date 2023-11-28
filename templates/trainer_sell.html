@@ -46,6 +46,7 @@
     <h2>Evolution Items:</h2>
     <table border="1">
       <tr>
+        <th>ItemID</th>
         <th>Name</th>
         <th>Evolves From</th>
         <th>Evolves Into</th>
@@ -54,13 +55,14 @@
       </tr>
       {% for row in ei_data %}
         <tr>
+          <td>{{ row['asset_id'] }}</td>
           <td>{{ row['name'] }}</td>
           <td>{{ row['evolves_from'] }}</td>
           <td>{{ row['evolves_into'] }}</td>
           <td>{{ row['cost'] }}</td>
           <td>
             <form action="{{ url_for('button_clicked_sell_trainer_asset') }}" method="post">
-              <input type="hidden" name="row_data" value="{{row['pokeid']}}">
+              <input type="hidden" name="row_data" value="{{row['asset_id']}}">
               <button>Sell</button>
             </form>
           </td>
@@ -71,6 +73,7 @@
     <h2>Battle Items:</h2>
     <table border="1">
       <tr>
+        <th>ItemID</th>
         <th>Name</th>
         <th>PowerLVL</th>
         <th>Cost</th>
@@ -78,12 +81,13 @@
       </tr>
       {% for row in bi_data %}
         <tr>
+          <td>{{ row['asset_id'] }}</td>
           <td>{{ row['name'] }}</td>
           <td>{{ row['powerlvl'] }}</td>
           <td>{{ row['cost'] }}</td>
           <td>
             <form action="{{ url_for('button_clicked_sell_trainer_asset') }}" method="post">
-              <input type="hidden" name="row_data" value="{{row['pokeid']}}">
+              <input type="hidden" name="row_data" value="{{row['asset_id']}}">
               <button>Sell</button>
             </form>
           </td>
@@ -94,17 +98,19 @@
     <h2>Other Items:</h2>
     <table border="1">
       <tr>
+        <th>ItemID</th>
         <th>Name</th>
         <th>Cost</th>
         <th></th>
       </tr>
       {% for row in oi_data %}
         <tr>
+          <td>{{ row['asset_id'] }}</td>
           <td>{{ row['name'] }}</td>
           <td>{{ row['cost'] }}</td>
           <td>
             <form action="{{ url_for('button_clicked_sell_trainer_asset') }}" method="post">
-              <input type="hidden" name="row_data" value="{{row['pokeid']}}">
+              <input type="hidden" name="row_data" value="{{row['asset_id']}}">
               <button>Sell</button>
             </form>
           </td>

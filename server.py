@@ -269,7 +269,7 @@ def button_clicked_buy_trainer():
     print(f"Button clicked for row: {row_data}")
     return redirect(url_for('trainer_buy'))
 
-# [**] BUTTON_CLICKED_BUY_TRAINER_ASSET
+# [*] BUTTON_CLICKED_BUY_TRAINER_ASSET
 @app.route('/button_clicked_buy_trainer_asset/', methods=['POST'])
 def button_clicked_buy_trainer_asset():
     # row_data is asset_id
@@ -327,7 +327,6 @@ def button_clicked_buy_trainer_asset():
 
     cpu_money_after = cpu_money_before + cost
 
-    # [*] transfer money
     g.conn.execute(text(f"""
                         UPDATE Trainer_Located_In
                         SET Money = '{cpu_money_after}'
@@ -383,6 +382,71 @@ def button_clicked_sell_trainer_asset():
     # row_data is asset_id
     row_data = request.form.get('row_data')
     
+    my_trainid, _, _, _  = get_current()
+    sel_trainid, _ = get_selected_trainer()
+
+    # [*] get cost
+    cursor = g.conn.execute(text(f"""
+                                SELECT A.cost
+                                FROM Asset A
+                                WHERE A.asset_id = '{row_data}'
+                                """))
+    g.conn.commit()
+
+    cost = cursor.fetchone()[0]
+
+    cursor.close()
+
+    # [*] update my money
+    cursor = g.conn.execute(text(f"""
+                                SELECT T.money
+                                FROM Trainer_Located_In T
+                                WHERE T.TrainID = '{my_trainid}'
+                                """))
+    g.conn.commit()
+
+    my_money_before = cursor.fetchone()[0]
+    
+    cursor.close()
+
+    my_money_after = my_money_before + cost
+
+    g.conn.execute(text(f"""
+                        UPDATE Trainer_Located_In
+                        SET Money = '{my_money_after}'
+                        WHERE TrainID = '{my_trainid}'
+                        """))
+    g.conn.commit()
+
+    # [*] update cpu money
+    cursor = g.conn.execute(text(f"""
+                                SELECT T.money
+                                FROM Trainer_Located_In T
+                                WHERE T.TrainID = '{sel_trainid}'
+                                """))
+    g.conn.commit()
+
+    cpu_money_before = cursor.fetchone()[0]
+
+    cursor.close()
+
+    cpu_money_after = cpu_money_before - cost
+
+    g.conn.execute(text(f"""
+                        UPDATE Trainer_Located_In
+                        SET Money = '{cpu_money_after}'
+                        WHERE TrainID = '{sel_trainid}'
+                        """))
+    g.conn.commit()
+
+    # [*] transfer ownership
+    g.conn.execute(text(f"""
+                        UPDATE Owns
+                        SET TrainID = '{sel_trainid}'
+                        WHERE Asset_ID = '{row_data}'
+                        """))
+    g.conn.commit()
+
     print(f"Button clicked for row: {row_data}")
     return redirect(url_for('trainer'))
 
@@ -484,12 +548,12 @@ def trainer_buy():
 # [**] === TRAINER/SELL ===
 @app.route('/trainer/sell/')
 def trainer_sell():
-    # [***] specify who are selling to
+    # [*] specify who are selling to
     my_trainid, my_train_name, _, my_loc_name = get_current()
     my_money = get_money()
     sel_trainid, sel_train_name = get_selected_trainer()
 
-    # [**] get pokemon
+    # [*] get pokemon
     cursor = g.conn.execute(text(f"""
                                 SELECT P.PokeID, A.Name, P.PowerLVL, A.Cost, A2.Name AS "Held Item"
                                 FROM Pokemon P
@@ -501,7 +565,7 @@ def trainer_sell():
                                 """))
 
 
-    # [**] display pokemon data in a table
+    # [*] display pokemon data in a table
     pokemon = []
     results = cursor.mappings().all()
     for result in results:
@@ -583,7 +647,6 @@ def trainer_sell():
     
     context = dict(pokemon_data = pokemon, ei_data = evolution_items, bi_data = battle_items, oi_data = other_items, my_train_name = my_train_name, my_loc_name = my_loc_name, sel_train_name = sel_train_name, my_money = my_money)
 
-    # [**] display bag data in a table
     return render_template("trainer_sell.html", **context)
 
 # [**] ======== BAG =========
@@ -706,9 +769,42 @@ def button_clicked_give_item():
 # [**] BUTTON_CLICKED_GIVE_ITEM_POKEMON
 @app.route('/button_clicked_give_item_pokemon/', methods=['POST'])
 def button_clicked_give_item_pokemon():
-    row_data = request.form.get('row_data')
+    pokeid = request.form.get('pokeid')
+    itemid = request.form.get('itemid')
+    sel_give_itemid, _ = get_selected_give_item()
     
-    print(f"Button clicked for row: {row_data}")
+    print(f"[775] Button clicked for row: {pokeid}")
+    print(f"Button clicked for row: {itemid}")
+
+    cursor = g.conn.execute(text(f"""
+                                SELECT *
+                                FROM Holds H
+                                WHERE H.pokeid = '{pokeid}'
+                                """))
+    g.conn.commit()
+
+    holding = cursor.fetchone()
+    cursor.close()
+
+    if holding:
+        print("Pokemon is already holding an item")
+        pass
+    else:
+        print("Gave the item")
+        g.conn.execute(text(f"""
+                            INSERT INTO Holds(pokeid, itemid)
+                            VALUES ('{pokeid}', '{sel_give_itemid}')
+                            """))
+        g.conn.commit()
+
+        g.conn.execute(text(f"""
+                            DELETE
+                            FROM Owns O
+                            WHERE O.asset_id = '{sel_give_itemid}'
+                            """))
+        g.conn.commit()
+
+    
     return redirect(url_for('bag'))
 
 # [**] BUTTON_CLICKED_USE_EVO_ITEM
@@ -762,7 +858,7 @@ def bag_give_item():
    # [*] get my pokemon
     # [***] Make sure you can only give item to pokemon that doesn't have an item
     cursor = g.conn.execute(text(f"""
-                                SELECT P.PokeID, A.Name, P.PowerLVL, A2.Name AS "Held Item"
+                                SELECT P.PokeID, A.Name, P.PowerLVL, A2.Name AS "Held Item", A2.Asset_ID AS ItemID
                                 FROM Pokemon P
                                 INNER JOIN Owns O ON O.Asset_ID = P.PokeID
                                 INNER JOIN Asset A ON A.Asset_ID = O.Asset_ID
