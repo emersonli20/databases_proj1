@@ -8,10 +8,14 @@
 
   <body>
     <h1>Select a Trainer:</h1>
-    <div>
-        {% for n in data %}
-        <div>{{n}}</div>
-        {% endfor %}
-    </div>
-    <p><a href="location">Go to the other page</a></p>
+    <table border="1">
+      <tr>
+        <th>Name</th>
+      </tr>
+      {% for row in data %}
+        <tr>
+          <td>{{ row }}</td>
+        </tr>
+      {% endfor %}
+    </table>
   </body>

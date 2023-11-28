@@ -6,17 +6,21 @@
     }
   </style>
 
-  <body>
-    <h2>Current location:</h2>
-    <div>
-        {% for n in my_data %}
-        <div>{{n}}</div>
-        {% endfor %}
-    </div>
-    <h2>Other locations:</h2>
-    <div>
-        {% for n in data %}
-        <div>{{n}}</div>
-        {% endfor %}
-    </div>
-  </body>
+  <h2>Current Location</h2>
+  <div>
+    {% for n in my_data %}
+    <div>{{n}}</div>
+    {% endfor %}
+  </div>
+
+  <h2>Other Locations:</h2>
+    <table border="1">
+      <tr>
+        <th>Name</th>
+      </tr>
+      {% for row in data %}
+        <tr>
+          <td>{{ row }}</td>
+        </tr>
+      {% endfor %}
+    </table>

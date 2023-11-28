@@ -6,6 +6,26 @@
     }
   </style>
 
+  <h2>My Pokemon:</h2>
+    <table border="1">
+      <tr>
+        <th>PokeID</th>
+        <th>Name</th>
+        <th>PowerLVL</th>
+        <th>Cost</th>
+        <th>Held Item</th>
+      </tr>
+      {% for row in data %}
+        <tr>
+          <td>{{ row['pokeid'] }}</td>
+          <td>{{ row['name'] }}</td>
+          <td>{{ row['powerlvl'] }}</td>
+          <td>{{ row['cost'] }}</td>
+          <td>{{ row['Held Item'] }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+
   <body>
     <h2>My Pokemon:</h2>
     <div>

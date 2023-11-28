@@ -16,9 +16,12 @@ conn = engine.connect()
 
 # [**] Initialize global variables
 MY_TRAINER_ID = "1"
+SELECTED_TRAINER_ID = "10"
 MY_LOC_ID = "104"
+SELECTED_EVOLUTION_ITEM_ID = "300"
+SELECTED_GIVE_ITEM = "400"
 
-# [*] BEFORE_REQUEST
+# [*] ==== BEFORE_REQUEST ====
 @app.before_request
 def before_request():
     """
@@ -36,7 +39,7 @@ def before_request():
         g.conn = None
 
 
-# [*] TEARDOWN_REQUEST
+# [*] ==== TEARDOWN_REQUEST ====
 @app.teardown_request
 def teardown_request(exception):
   """
@@ -48,7 +51,7 @@ def teardown_request(exception):
   except Exception as e:
     pass
 
-# [**] INDEX
+# [**] ======= INDEX ========
 @app.route('/')
 def index():
     # [*] - get trainers excluding gym leaders
@@ -67,7 +70,7 @@ def index():
     
     return render_template("index.html", **context)
 
-
+# [**] ====== LOCATION ========
 @app.route('/location')
 def location():
     # [***] set default location
@@ -106,6 +109,7 @@ def location():
     
     return render_template("location.html", **context)
 
+# [**] ======= TRAINER =======
 @app.route('/trainer')
 def trainer():
 
@@ -150,12 +154,90 @@ def trainer():
     
     return render_template("trainer.html", **context)
 
-@app.route('/bag')
-def bag():
-
-    # [*] get evolution items
+# [*] === TRAINER/BUY ===
+@app.route('/trainer/buy')
+def trainer_buy():
+   # [*] get evolution items
     cursor = g.conn.execute(text(f"""
-                                 SELECT A.Name, E.Evolves_From, E.Evolves_Into 
+                                 SELECT A.Name, E.Evolves_From, E.Evolves_Into, A.Cost
+                                 FROM Evolution_Item E
+                                 JOIN Asset A ON A.Asset_ID = E.ItemID
+                                 JOIN Owns O ON O.Asset_ID = A.Asset_ID
+                                 WHERE O.TrainID = '{SELECTED_TRAINER_ID}'
+                                 """))
+                                 
+    evolution_items = []
+    results = cursor.mappings().all()
+    for result in results:
+      evolution_items.append(result)
+    cursor.close()
+
+    # [*] get battle items
+    cursor = g.conn.execute(text(f"""
+                                 SELECT A.Name, B.PowerLVL, A.Cost 
+                                 FROM Battle_Item B
+                                 JOIN Asset A ON A.Asset_ID = B.ItemID
+                                 JOIN Owns O ON O.Asset_ID = A.Asset_ID
+                                 WHERE O.TrainID = '{SELECTED_TRAINER_ID}'
+                                 """))
+                                #  AND A.Asset_ID NOT IN 
+                                #     (
+                                #     SELECT H.ItemID
+                                #     FROM Holds H
+                                #     )
+    battle_items = []
+    results = cursor.mappings().all()
+    for result in results:
+      battle_items.append(result)
+    cursor.close()
+
+    # [*] get other items
+    cursor = g.conn.execute(text(f"""
+                                SELECT A.Name, A.Cost
+                                FROM Item I
+                                JOIN Asset A ON A.Asset_ID = I.ItemID
+                                LEFT JOIN Evolution_Item E ON I.ItemID = E.ItemID
+                                JOIN Owns O ON O.Asset_ID = A.Asset_ID
+                                WHERE E.ItemID IS NULL
+                                AND O.TrainID = '{SELECTED_TRAINER_ID}'
+                                INTERSECT
+                                SELECT A.Name, A.Cost
+                                FROM Item I
+                                JOIN Asset A ON A.Asset_ID = I.ItemID
+                                LEFT JOIN Battle_Item B ON I.ItemID = B.ItemID
+                                JOIN Owns O ON O.Asset_ID = A.Asset_ID
+                                WHERE B.ItemID IS NULL
+                                AND O.TrainID = '{SELECTED_TRAINER_ID}'
+                                """))
+                                # AND A.Asset_ID NOT IN 
+                                #     (
+                                #     SELECT H.ItemID
+                                #     FROM Holds H
+                                #     )
+                                # AND A.Asset_ID NOT IN 
+                                #     (
+                                #     SELECT H.ItemID
+                                #     FROM Holds H
+                                #     )
+    other_items = []
+    results = cursor.mappings().all()
+    for result in results:
+      other_items.append(result)
+    cursor.close()
+    
+    context = dict(ei_data = evolution_items, bi_data = battle_items, oi_data = other_items)
+
+    return render_template("trainer_buy.html", **context)
+   
+
+# [**] === TRAINER/SELL ===
+@app.route('/trainer/sell')
+def trainer_sell():
+    # [***] specify who are selling to
+    
+        # [*] get evolution items
+    cursor = g.conn.execute(text(f"""
+                                 SELECT A.Name, E.Evolves_From, E.Evolves_Into, A.Cost
                                  FROM Evolution_Item E
                                  JOIN Asset A ON A.Asset_ID = E.ItemID
                                  JOIN Owns O ON O.Asset_ID = A.Asset_ID
@@ -167,18 +249,15 @@ def bag():
                                     )
                                  """))
                                  
-                                #  LEFT JOIN Item I
-                                #     ON E.ItemID = I.ItemID
-                                #  WHERE E.ItemID IS NOT NULL"""))
     evolution_items = []
     results = cursor.mappings().all()
     for result in results:
       evolution_items.append(result)
     cursor.close()
 
-    # [**] get battle items
+    # [*] get battle items
     cursor = g.conn.execute(text(f"""
-                                 SELECT A.Name, B.PowerLVL 
+                                 SELECT A.Name, B.PowerLVL, A.Cost
                                  FROM Battle_Item B
                                  JOIN Asset A ON A.Asset_ID = B.ItemID
                                  JOIN Owns O ON O.Asset_ID = A.Asset_ID
@@ -195,7 +274,89 @@ def bag():
       battle_items.append(result)
     cursor.close()
 
-    # [**] get other items
+    # [*] get other items
+    cursor = g.conn.execute(text(f"""
+                                SELECT A.Name, A.Cost
+                                FROM Item I
+                                JOIN Asset A ON A.Asset_ID = I.ItemID
+                                LEFT JOIN Evolution_Item E ON I.ItemID = E.ItemID
+                                JOIN Owns O ON O.Asset_ID = A.Asset_ID
+                                WHERE E.ItemID IS NULL
+                                AND O.TrainID = '{MY_TRAINER_ID}'
+                                AND A.Asset_ID NOT IN 
+                                    (
+                                    SELECT H.ItemID
+                                    FROM Holds H
+                                    )
+                                INTERSECT
+                                SELECT A.Name, A.Cost
+                                FROM Item I
+                                JOIN Asset A ON A.Asset_ID = I.ItemID
+                                LEFT JOIN Battle_Item B ON I.ItemID = B.ItemID
+                                JOIN Owns O ON O.Asset_ID = A.Asset_ID
+                                WHERE B.ItemID IS NULL
+                                AND O.TrainID = '{MY_TRAINER_ID}'
+                                AND A.Asset_ID NOT IN 
+                                    (
+                                    SELECT H.ItemID
+                                    FROM Holds H
+                                    )
+                                """))
+    other_items = []
+    results = cursor.mappings().all()
+    for result in results:
+      other_items.append(result)
+    cursor.close()
+    
+    context = dict(ei_data = evolution_items, bi_data = battle_items, oi_data = other_items)
+
+    # [**] display bag data in a table
+    return render_template("trainer_sell.html", **context)
+
+# [**] ======== BAG =========
+@app.route('/bag')
+def bag():
+
+    # [*] get evolution items
+    cursor = g.conn.execute(text(f"""
+                                 SELECT A.Name, E.Evolves_From, E.Evolves_Into, A.Cost
+                                 FROM Evolution_Item E
+                                 JOIN Asset A ON A.Asset_ID = E.ItemID
+                                 JOIN Owns O ON O.Asset_ID = A.Asset_ID
+                                 WHERE O.TrainID = '{MY_TRAINER_ID}'
+                                 AND A.Asset_ID NOT IN 
+                                    (
+                                    SELECT H.ItemID
+                                    FROM Holds H
+                                    )
+                                 """))
+                                 
+    evolution_items = []
+    results = cursor.mappings().all()
+    for result in results:
+      evolution_items.append(result)
+    cursor.close()
+
+    # [*] get battle items
+    cursor = g.conn.execute(text(f"""
+                                 SELECT A.Name, B.PowerLVL, A.Cost
+                                 FROM Battle_Item B
+                                 JOIN Asset A ON A.Asset_ID = B.ItemID
+                                 JOIN Owns O ON O.Asset_ID = A.Asset_ID
+                                 WHERE O.TrainID = '{MY_TRAINER_ID}'
+                                 AND A.Asset_ID NOT IN 
+                                    (
+                                    SELECT H.ItemID
+                                    FROM Holds H
+                                    )
+                                 """))
+    battle_items = []
+    results = cursor.mappings().all()
+    for result in results:
+      battle_items.append(result)
+    cursor.close()
+
+    # [*] get other items
     cursor = g.conn.execute(text(f"""
                                 SELECT A.Name, A.Cost
                                 FROM Item I
@@ -234,17 +395,83 @@ def bag():
     # [**] display bag data in a table
     return render_template("bag.html", **context)
 
-@app.route('/pokemon')
-def pokemon():
+# [**] ======= BAG/USE_EVOLUTION_ITEM =========
+@app.route('/bag/use_evolution_item')
+def bag_use_evolution_item():
+   # [*] get my pokemon
+    #    [***] Make sure you can only use evolution item on pokemon that is not holding an item
+    cursor = g.conn.execute(text(f"""
+                                SELECT P.PokeID, A.Name, P.PowerLVL
+                                FROM Pokemon P
+                                JOIN Asset A ON A.Asset_ID = P.PokeID
+                                JOIN Owns O ON O.Asset_ID = A.Asset_ID
+                                WHERE A.Name = 
+                                    (
+                                    SELECT E.Evolves_From
+                                    FROM Evolution_Item E
+                                    WHERE E.ItemID = '{SELECTED_EVOLUTION_ITEM_ID}'
+                                    )
+                                AND O.TrainID = '{MY_TRAINER_ID}'
+                                """))
 
-    # [**] get my pokemon
+
+    # [**] display pokemon data in a table
+    pokemon = []
+    results = cursor.mappings().all()
+    for result in results:
+      pokemon.append(result)
+    cursor.close()
+
+    print(pokemon)
+
+    context = dict(data = pokemon)
+
+    return render_template("bag_use_evolution_item.html", **context)
+
+
+# [**] ======= BAG/GIVE_ITEM ========
+@app.route('/bag/give_item')
+def bag_give_item():
+   # [*] get my pokemon
+    # [***] Make sure you can only give item to pokemon that doesn't have an item
     cursor = g.conn.execute(text(f"""
                                 SELECT P.PokeID, A.Name, P.PowerLVL, A.Cost, A2.Name AS "Held Item"
                                 FROM Pokemon P
                                 INNER JOIN Owns O ON O.Asset_ID = P.PokeID
                                 INNER JOIN Asset A ON A.Asset_ID = O.Asset_ID
-                                INNER JOIN Holds H ON H.PokeID = P.PokeID
-                                INNER JOIN Asset A2 ON A2.Asset_ID = H.ItemID
+                                LEFT JOIN Holds H ON H.PokeID = P.PokeID
+                                LEFT JOIN Asset A2 ON A2.Asset_ID = H.ItemID
+                                WHERE O.TrainID = '{MY_TRAINER_ID}'
+                                """))
+
+
+    # [**] display pokemon data in a table
+    pokemon = []
+    results = cursor.mappings().all()
+    for result in results:
+      pokemon.append(result)
+    cursor.close()
+
+    print(pokemon)
+
+    context = dict(data = pokemon)
+
+    return render_template("bag_give_item.html", **context)
+
+
+# [**] ======= POKEMON =======
+@app.route('/pokemon')
+def pokemon():
+
+    # [**] get my pokemon
+    # [*] also display pokemon that don't hold an item
+    cursor = g.conn.execute(text(f"""
+                                SELECT P.PokeID, A.Name, P.PowerLVL, A.Cost, A2.Name AS "Held Item"
+                                FROM Pokemon P
+                                INNER JOIN Owns O ON O.Asset_ID = P.PokeID
+                                INNER JOIN Asset A ON A.Asset_ID = O.Asset_ID
+                                LEFT JOIN Holds H ON H.PokeID = P.PokeID
+                                LEFT JOIN Asset A2 ON A2.Asset_ID = H.ItemID
                                 WHERE O.TrainID = '{MY_TRAINER_ID}'
                                 """))
 
