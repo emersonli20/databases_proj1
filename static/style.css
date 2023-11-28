@@ -27,6 +27,15 @@ padding: 14px 16px;
 text-decoration: none;
 }
 
+.box {
+  position: fixed;
+  top: 100px;
+  right: 200px;
+  width: 300px;
+  height: 70px;
+  background-color: yellow;
+}
+
 /* The dropdown container */
 .dropdown {
 float: left;

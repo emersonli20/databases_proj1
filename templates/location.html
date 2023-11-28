@@ -8,6 +8,12 @@
     <a href="bag">Bag</a>
     <a href="pokemon">My Pokemon</a>
   </div> 
+
+  <div class="box">
+    Playing As: {{my_train_name}}<br>
+    Current Location: {{my_loc_name}}
+  </div>
+
   <style>
     body{ 
       font-size: 15pt;
@@ -16,7 +22,7 @@
   </style>
 
   <img src="{{ url_for('static', filename='kanto.png') }}" alt="Kanto Image" width="30%" height="auto">
-  <h2>Current Location</h2>
+  <h2>Current Location:</h2>
   <div>
     {% for n in my_data %}
     <div>{{n}}</div>
@@ -27,10 +33,17 @@
     <table border="1">
       <tr>
         <th>Name</th>
+        <th></th>
       </tr>
       {% for row in data %}
         <tr>
           <td>{{ row }}</td>
+          <td>
+            <form action="{{ url_for('button_clicked_change_location') }}" method="post">
+              <input type="hidden" name="row_data" value="{{row}}">
+              <button>Go</button>
+            </form>
+          </td>
         </tr>
       {% endfor %}
     </table>

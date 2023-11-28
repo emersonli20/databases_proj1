@@ -1,7 +1,7 @@
 import os
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
-from flask import Flask, request, render_template, g, redirect, Response, abort
+from flask import Flask, request, render_template, g, redirect, Response, abort, url_for
 
 # [*] Create Flask App
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
@@ -19,7 +19,8 @@ MY_TRAINER_ID = "1"
 SELECTED_TRAINER_ID = "10"
 MY_LOC_ID = "104"
 SELECTED_EVOLUTION_ITEM_ID = "300"
-SELECTED_GIVE_ITEM = "400"
+SELECTED_GIVE_ITEM_ID = "400"
+
 
 # [*] ==== BEFORE_REQUEST ====
 @app.before_request
@@ -47,6 +48,10 @@ def teardown_request(exception):
   If you don't, the database could run out of memory!
   """
   try:
+    # g.conn.execute(text(f"""
+    #                     UPDATE Settings
+    #                     SET my_trainid = NULL, sel_trainid
+    #                     """))
     g.conn.close()
   except Exception as e:
     pass
@@ -70,17 +75,63 @@ def index():
     
     return render_template("index.html", **context)
 
+@app.route('/button_clicked_select_trainer', methods=['POST'])
+def button_clicked_select_trainer():
+    row_data = request.form.get('row_data')
+    # [**] get trainid using trainer name
+    cursor = g.conn.execute(text(f"""
+                                SELECT T.trainid
+                                FROM Trainer_Located_In T
+                                WHERE T.name = '{row_data}'
+                                ORDER BY T.trainid
+                                LIMIT 1
+                                """))
+    g.conn.commit()
+
+    trainids = []
+    results = cursor.mappings().all()
+    for result in results:
+      trainids.append(result["trainid"])
+    cursor.close()
+    trainid = trainids[0]
+
+    # [**] update settings table
+    g.conn.execute(text(f"""
+                        UPDATE Settings
+                        SET my_trainid = '{trainid}';
+                        """))
+    g.conn.commit()
+    
+    print(f"Button clicked for row: {row_data}")
+    return redirect(url_for('location'))
+
 # [**] ====== LOCATION ========
 @app.route('/location')
 def location():
     # [***] set default location
+    # [*] get current location id
+    cursor = g.conn.execute(text(f"""
+                                SELECT S.my_locid
+                                FROM settings S
+                                ORDER BY S.my_locid
+                                LIMIT 1
+                                """))
+    g.conn.commit()
+
+    my_locids = []
+    results = cursor.mappings().all()
+    for result in results:
+      my_locids.append(result["my_locid"])
+    cursor.close()
+
+    my_locid = my_locids[0]
 
     # [*] show current location
 
     cursor = g.conn.execute(text(f"""
                                 SELECT L.locname 
                                 FROM location L
-                                WHERE L.LocID = '{MY_LOC_ID}'
+                                WHERE L.LocID = '{my_locid}'
                                 """))
     g.conn.commit()
 
@@ -90,12 +141,12 @@ def location():
       my_location.append(result["locname"])
     cursor.close()
 
-    # [**] Add buttons to let you move locations
+    # [*] Add buttons to let you move locations
     # [*] get names of other locations
     cursor = g.conn.execute(text(f"""
                                 SELECT L.locname 
                                 FROM location L
-                                WHERE L.LocID != '{MY_LOC_ID}'
+                                WHERE L.LocID != '{my_locid}'
                                 """))
     g.conn.commit()
 
@@ -105,9 +156,93 @@ def location():
       location_names.append(result["locname"])
     cursor.close()
 
-    context = dict(data = location_names, my_data = my_location)
+    # [*] get current trainer name
+    cursor = g.conn.execute(text(f"""
+                                SELECT S.my_trainid
+                                FROM settings S
+                                ORDER BY S.my_trainid
+                                LIMIT 1
+                                """))
+    g.conn.commit()
+
+    my_trainids = []
+    results = cursor.mappings().all()
+    for result in results:
+      my_trainids.append(result["my_trainid"])
+    cursor.close()
+
+    my_trainid = my_trainids[0]
+
+    cursor = g.conn.execute(text(f"""
+                                SELECT T.name
+                                FROM Trainer_Located_In T
+                                WHERE T.trainid = '{my_trainid}'
+                                ORDER BY T.trainid
+                                LIMIT 1
+                                """))
+    g.conn.commit()
+
+    my_train_names = []
+    results = cursor.mappings().all()
+    for result in results:
+      my_train_names.append(result["name"])
+    cursor.close()
+
+    my_train_name = my_train_names[0]
+
     
+
+    # [*] get current location name
+    cursor = g.conn.execute(text(f"""
+                                SELECT L.locname
+                                FROM Location L
+                                WHERE L.locid = '{my_locid}'
+                                ORDER BY L.locid
+                                LIMIT 1
+                                """))
+    g.conn.commit()
+
+    my_loc_names = []
+    results = cursor.mappings().all()
+    for result in results:
+      my_loc_names.append(result["locname"])
+    cursor.close()
+
+    my_loc_name = my_loc_names[0]
+
+    context = dict(data = location_names, my_data = my_location, my_train_name = my_train_name, my_loc_name = my_loc_name)
+
     return render_template("location.html", **context)
+
+@app.route('/button_clicked_change_location', methods=['POST'])
+def button_clicked_change_location():
+    row_data = request.form.get('row_data')
+    # [*] get locid using location name
+    cursor = g.conn.execute(text(f"""
+                                SELECT L.locid
+                                FROM Location L
+                                WHERE L.locname = '{row_data}'
+                                ORDER BY L.locid
+                                LIMIT 1
+                                """))
+    g.conn.commit()
+
+    locids = []
+    results = cursor.mappings().all()
+    for result in results:
+      locids.append(result["locid"])
+    cursor.close()
+    locid = locids[0]
+
+    # [*] update settings table
+    g.conn.execute(text(f"""
+                        UPDATE Settings
+                        SET my_locid = '{locid}';
+                        """))
+    g.conn.commit()
+    
+    print(f"Button clicked for row: {row_data}")
+    return redirect(url_for('location'))
 
 # [**] ======= TRAINER =======
 @app.route('/trainer')
