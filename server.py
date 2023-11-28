@@ -303,7 +303,9 @@ def button_clicked_buy_trainer_asset():
     my_money_before = cursor.fetchone()[0]
     
     cursor.close()
-
+    if (cost > my_money_before:
+        return redirect(url_for('trainer'))
+        
     my_money_after = my_money_before - cost
 
     g.conn.execute(text(f"""
