@@ -61,6 +61,7 @@ def teardown_request(exception):
 def index():
 
     _, my_train_name, _, my_loc_name = get_current()
+    my_money = get_money()
 
     # [*] - get trainers excluding gym leaders
     cursor = g.conn.execute(text("SELECT T.name FROM trainer_located_in T LEFT JOIN gym_leader G ON T.trainid = G.gymid WHERE G.gymid IS NULL;"))
@@ -73,7 +74,7 @@ def index():
       trainer_names.append(result["name"])
     cursor.close()
 
-    context = dict(data = trainer_names, my_train_name = my_train_name, my_loc_name = my_loc_name)
+    context = dict(data = trainer_names, my_train_name = my_train_name, my_loc_name = my_loc_name, my_money = my_money)
     
     return render_template("index.html", **context)
 
@@ -112,7 +113,7 @@ def button_clicked_select_trainer():
 @app.route('/location')
 def location():
     my_trainid, my_train_name, my_locid, my_loc_name = get_current()
-    
+    my_money = get_money()
 
     # [*] show current location
 
@@ -146,7 +147,7 @@ def location():
 
     
 
-    context = dict(data = location_names, my_data = my_location, my_train_name = my_train_name, my_loc_name = my_loc_name)
+    context = dict(data = location_names, my_data = my_location, my_train_name = my_train_name, my_loc_name = my_loc_name, my_money = my_money)
 
     return render_template("location.html", **context)
 
@@ -187,7 +188,7 @@ def trainer():
 
     # [*] Add battle, buy, and sell buttons
     my_trainid, my_train_name, my_locid, my_loc_name = get_current()
-
+    my_money = get_money()
 
     # [*] get trainers
     # [*] exclude yourself
@@ -224,7 +225,7 @@ def trainer():
     cursor.close()
 
 
-    context = dict(t_data = trainers, gl_data = gym_leaders, my_train_name = my_train_name, my_loc_name = my_loc_name)
+    context = dict(t_data = trainers, gl_data = gym_leaders, my_train_name = my_train_name, my_loc_name = my_loc_name, my_money = my_money)
     
     return render_template("trainer.html", **context)
 
@@ -275,6 +276,73 @@ def button_clicked_buy_trainer_asset():
     row_data = request.form.get('row_data')
     
     print(f"Button clicked for row: {row_data}")
+
+    my_trainid, _, _, _  = get_current()
+    sel_trainid, _ = get_selected_trainer()
+
+    # [*] get cost
+    cursor = g.conn.execute(text(f"""
+                                SELECT A.cost
+                                FROM Asset A
+                                WHERE A.asset_id = '{row_data}'
+                                """))
+    g.conn.commit()
+
+    cost = cursor.fetchone()[0]
+
+    cursor.close()
+
+    # [*] update my money
+    cursor = g.conn.execute(text(f"""
+                                SELECT T.money
+                                FROM Trainer_Located_In T
+                                WHERE T.TrainID = '{my_trainid}'
+                                """))
+    g.conn.commit()
+
+    my_money_before = cursor.fetchone()[0]
+    
+    cursor.close()
+
+    my_money_after = my_money_before - cost
+
+    g.conn.execute(text(f"""
+                        UPDATE Trainer_Located_In
+                        SET Money = '{my_money_after}'
+                        WHERE TrainID = '{my_trainid}'
+                        """))
+    g.conn.commit()
+
+    # [*] update cpu money
+    cursor = g.conn.execute(text(f"""
+                                SELECT T.money
+                                FROM Trainer_Located_In T
+                                WHERE T.TrainID = '{sel_trainid}'
+                                """))
+    g.conn.commit()
+
+    cpu_money_before = cursor.fetchone()[0]
+
+    cursor.close()
+
+    cpu_money_after = cpu_money_before + cost
+
+    # [*] transfer money
+    g.conn.execute(text(f"""
+                        UPDATE Trainer_Located_In
+                        SET Money = '{cpu_money_after}'
+                        WHERE TrainID = '{sel_trainid}'
+                        """))
+    g.conn.commit()
+
+    # [*] transfer ownership
+    g.conn.execute(text(f"""
+                        UPDATE Owns
+                        SET TrainID = '{my_trainid}'
+                        WHERE Asset_ID = '{row_data}'
+                        """))
+    g.conn.commit()
+    
     return redirect(url_for('trainer'))
 
 # [*] BUTTON_CLICKED_SELL_TRAINER
@@ -323,6 +391,7 @@ def button_clicked_sell_trainer_asset():
 def trainer_buy():
     
     _, my_train_name, _, my_loc_name = get_current()
+    my_money = get_money()
     sel_trainid, sel_train_name = get_selected_trainer()
 
     # [*] get pokemon
@@ -346,7 +415,7 @@ def trainer_buy():
     
    # [*] get evolution items
     cursor = g.conn.execute(text(f"""
-                                 SELECT A.Name, E.Evolves_From, E.Evolves_Into, A.Cost
+                                 SELECT A.Asset_ID, A.Name, E.Evolves_From, E.Evolves_Into, A.Cost
                                  FROM Evolution_Item E
                                  JOIN Asset A ON A.Asset_ID = E.ItemID
                                  JOIN Owns O ON O.Asset_ID = A.Asset_ID
@@ -361,7 +430,7 @@ def trainer_buy():
 
     # [*] get battle items
     cursor = g.conn.execute(text(f"""
-                                 SELECT A.Name, B.PowerLVL, A.Cost 
+                                 SELECT A.Asset_ID, A.Name, B.PowerLVL, A.Cost 
                                  FROM Battle_Item B
                                  JOIN Asset A ON A.Asset_ID = B.ItemID
                                  JOIN Owns O ON O.Asset_ID = A.Asset_ID
@@ -375,7 +444,7 @@ def trainer_buy():
 
     # [*] get other items
     cursor = g.conn.execute(text(f"""
-                                SELECT A.Name, A.Cost
+                                SELECT A.Asset_ID, A.Name, A.Cost
                                 FROM Item I
                                 JOIN Asset A ON A.Asset_ID = I.ItemID
                                 LEFT JOIN Evolution_Item E ON I.ItemID = E.ItemID
@@ -383,7 +452,7 @@ def trainer_buy():
                                 WHERE E.ItemID IS NULL
                                 AND O.TrainID = '{sel_trainid}'
                                 INTERSECT
-                                SELECT A.Name, A.Cost
+                                SELECT A.Asset_ID, A.Name, A.Cost
                                 FROM Item I
                                 JOIN Asset A ON A.Asset_ID = I.ItemID
                                 LEFT JOIN Battle_Item B ON I.ItemID = B.ItemID
@@ -407,7 +476,7 @@ def trainer_buy():
       other_items.append(result)
     cursor.close()
     
-    context = dict(pokemon_data = pokemon, ei_data = evolution_items, bi_data = battle_items, oi_data = other_items, my_train_name = my_train_name, my_loc_name = my_loc_name, sel_train_name = sel_train_name)
+    context = dict(pokemon_data = pokemon, ei_data = evolution_items, bi_data = battle_items, oi_data = other_items, my_train_name = my_train_name, my_loc_name = my_loc_name, sel_train_name = sel_train_name, my_money = my_money)
 
     return render_template("trainer_buy.html", **context)
    
@@ -417,6 +486,7 @@ def trainer_buy():
 def trainer_sell():
     # [***] specify who are selling to
     my_trainid, my_train_name, _, my_loc_name = get_current()
+    my_money = get_money()
     sel_trainid, sel_train_name = get_selected_trainer()
 
     # [**] get pokemon
@@ -511,7 +581,7 @@ def trainer_sell():
       other_items.append(result)
     cursor.close()
     
-    context = dict(pokemon_data = pokemon, ei_data = evolution_items, bi_data = battle_items, oi_data = other_items, my_train_name = my_train_name, my_loc_name = my_loc_name, sel_train_name = sel_train_name)
+    context = dict(pokemon_data = pokemon, ei_data = evolution_items, bi_data = battle_items, oi_data = other_items, my_train_name = my_train_name, my_loc_name = my_loc_name, sel_train_name = sel_train_name, my_money = my_money)
 
     # [**] display bag data in a table
     return render_template("trainer_sell.html", **context)
@@ -830,6 +900,44 @@ def get_current():
     my_loc_name = my_loc_names[0]
 
     return my_trainid, my_train_name, my_locid, my_loc_name
+
+# [**] === GET_MONEY ===
+def get_money():
+    # [*] get current trainer id
+    cursor = g.conn.execute(text(f"""
+                                SELECT S.my_trainid
+                                FROM settings S
+                                ORDER BY S.my_trainid
+                                LIMIT 1
+                                """))
+    g.conn.commit()
+
+    my_trainids = []
+    results = cursor.mappings().all()
+    for result in results:
+      my_trainids.append(result["my_trainid"])
+    cursor.close()
+
+    my_trainid = my_trainids[0]
+
+    # [**] get money
+    cursor = g.conn.execute(text(f"""
+                                SELECT T.money
+                                FROM Trainer_Located_In T
+                                WHERE T.TrainID = '{my_trainid}'
+                                ORDER BY T.TrainID
+                                LIMIT 1
+                                """))
+    g.conn.commit()
+
+    moneys = []
+    results = cursor.mappings().all()
+    for result in results:
+      moneys.append(result["money"])
+    cursor.close()
+
+    my_money = moneys[0]
+    return my_money
 
 # [*] === GET_SELECTED_TRAINER ===
 def get_selected_trainer():

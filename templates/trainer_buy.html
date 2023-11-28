@@ -2,6 +2,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <div class="box">
     Playing As: {{my_train_name}}<br>
+    Money: {{my_money}}<br>
     Current Location: {{my_loc_name}}<br>
     Selected Trainer: {{sel_train_name}}
   </div>
@@ -11,6 +12,12 @@
       font-family: arial;
     }
   </style>
+
+  <script>
+    function bought() {
+      alert("Successfully Bought!");
+    }
+  </script>
 
   <body>
     <h1>Buy from Trainer:</h1>
@@ -35,7 +42,7 @@
           <td>
             <form action="{{ url_for('button_clicked_buy_trainer_asset') }}" method="post">
               <input type="hidden" name="row_data" value="{{row['pokeid']}}">
-              <button>Buy</button>
+              <button onclick="bought()">Buy</button>
             </form>
           </td>
         </tr>
@@ -45,6 +52,7 @@
     <h2>Evolution Items:</h2>
     <table border="1">
       <tr>
+        <th>ItemID</th>
         <th>Name</th>
         <th>Evolves From</th>
         <th>Evolves Into</th>
@@ -53,14 +61,15 @@
       </tr>
       {% for row in ei_data %}
         <tr>
+          <td>{{ row['asset_id'] }}</td>
           <td>{{ row['name'] }}</td>
           <td>{{ row['evolves_from'] }}</td>
           <td>{{ row['evolves_into'] }}</td>
           <td>{{ row['cost'] }}</td>
           <td>
             <form action="{{ url_for('button_clicked_buy_trainer_asset') }}" method="post">
-              <input type="hidden" name="row_data" value="{{row['pokeid']}}">
-              <button>Buy</button>
+              <input type="hidden" name="row_data" value="{{row['asset_id']}}">
+              <button onclick="bought()">Buy</button>
             </form>
           </td>
         </tr>
@@ -70,6 +79,7 @@
     <h2>Battle Items:</h2>
     <table border="1">
       <tr>
+        <th>ItemID</th>
         <th>Name</th>
         <th>PowerLVL</th>
         <th>Cost</th>
@@ -77,13 +87,14 @@
       </tr>
       {% for row in bi_data %}
         <tr>
+          <td>{{ row['asset_id'] }}</td>
           <td>{{ row['name'] }}</td>
           <td>{{ row['powerlvl'] }}</td>
           <td>{{ row['cost'] }}</td>
           <td>
             <form action="{{ url_for('button_clicked_buy_trainer_asset') }}" method="post">
-              <input type="hidden" name="row_data" value="{{row['pokeid']}}">
-              <button>Buy</button>
+              <input type="hidden" name="row_data" value="{{row['asset_id']}}">
+              <button onclick="bought()">Buy</button>
             </form>
           </td>
         </tr>
@@ -93,18 +104,20 @@
     <h2>Other Items:</h2>
     <table border="1">
       <tr>
+        <th>ItemID</th>
         <th>Name</th>
         <th>Cost</th>
         <th></th>
       </tr>
       {% for row in oi_data %}
         <tr>
+          <td>{{ row['asset_id'] }}</td>
           <td>{{ row['name'] }}</td>
           <td>{{ row['cost'] }}</td>
           <td>
             <form action="{{ url_for('button_clicked_buy_trainer_asset') }}" method="post">
-              <input type="hidden" name="row_data" value="{{row['pokeid']}}">
-              <button>Buy</button>
+              <input type="hidden" name="row_data" value="{{row['asset_id']}}">
+              <button onclick="bought()">Buy</button>
             </form>
           </td>
         </tr>

@@ -29,10 +29,10 @@ text-decoration: none;
 
 .box {
   position: fixed;
-  top: 100px;
+  top: 70px;
   right: 200px;
   width: 300px;
-  height: 70px;
+  height: 100px;
   background-color: yellow;
 }
 
