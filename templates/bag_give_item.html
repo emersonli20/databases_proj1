@@ -1,5 +1,10 @@
 <html>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <div class="box">
+    Selected Item: {{sel_give_item_name}}
+  </div>
+  
   <style>
     body{ 
       font-size: 15pt;
@@ -9,6 +14,7 @@
 
   <body>
     <h1>Give Item to Pokemon</h1>
+    <a href="/bag"><button>Back </button></a>
     <h2>My Pokemon:</h2>
     <table border="1">
         <tr>
@@ -16,6 +22,7 @@
           <th>Name</th>
           <th>PowerLVL</th>
           <th>Held Item</th>
+          <th></th>
         </tr>
         {% for row in data %}
           <tr>
@@ -23,6 +30,12 @@
             <td>{{ row['name'] }}</td>
             <td>{{ row['powerlvl'] }}</td>
             <td>{{ row['Held Item'] }}</td>
+            <td>
+              <form action="{{ url_for('button_clicked_give_item_pokemon') }}" method="post">
+                <input type="hidden" name="row_data" value="{{row['pokeid']}}">
+                <button>Give</button>
+              </form>
+            </td>
           </tr>
         {% endfor %}
     </table>

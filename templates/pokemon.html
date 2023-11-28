@@ -3,10 +3,10 @@
   <h1>Pokemon</h1>
   <div class="navbar">
     <a href="/">Home</a>
-    <a href="location">Map</a>
-    <a href="trainer">Trainers</a>
-    <a href="bag">Bag</a>
-    <a href="pokemon">My Pokemon</a>
+    <a href="/location">Map</a>
+    <a href="/trainer">Trainers</a>
+    <a href="/bag">Bag</a>
+    <a href="/pokemon">My Pokemon</a>
   </div> 
   <style>
     body{ 
@@ -24,6 +24,7 @@
         <th>PowerLVL</th>
         <th>Cost</th>
         <th>Held Item</th>
+        <th></th>
       </tr>
       {% for row in data %}
         <tr>
@@ -32,6 +33,12 @@
           <td>{{ row['powerlvl'] }}</td>
           <td>{{ row['cost'] }}</td>
           <td>{{ row['Held Item'] }}</td>
+          <td>
+            <form action="{{ url_for('button_clicked_take_item') }}" method="post">
+              <input type="hidden" name="row_data" value="{{row['pokeid']}}">
+              <button>Take Item</button>
+            </form>
+          </td>
         </tr>
       {% endfor %}
     </table>

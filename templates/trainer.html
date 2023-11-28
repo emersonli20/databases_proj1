@@ -3,11 +3,15 @@
   <h1>Trainers</h1>
   <div class="navbar">
     <a href="/">Home</a>
-    <a href="location">Map</a>
-    <a href="trainer">Trainers</a>
-    <a href="bag">Bag</a>
-    <a href="pokemon">My Pokemon</a>
+    <a href="/location">Map</a>
+    <a href="/trainer">Trainers</a>
+    <a href="/bag">Bag</a>
+    <a href="/pokemon">My Pokemon</a>
   </div> 
+  <div class="box">
+    Playing As: {{my_train_name}}<br>
+    Current Location: {{my_loc_name}}
+  </div>
   <style>
     body{ 
       font-size: 15pt;
@@ -22,11 +26,32 @@
       <tr>
         <th>Name</th>
         <th>Money</th>
+        <th></th>
+        <th></th>
+        <th></th>
       </tr>
       {% for row in t_data %}
         <tr>
           <td>{{ row['name'] }}</td>
           <td>{{ row['money'] }}</td>
+          <td>
+            <form action="{{ url_for('button_clicked_battle_trainer') }}" method="post">
+              <input type="hidden" name="row_data" value="{{row['name']}}">
+              <button>Battle</button>
+            </form>
+          </td>
+          <td>
+            <form action="{{ url_for('button_clicked_buy_trainer') }}" method="post">
+              <input type="hidden" name="row_data" value="{{row['name']}}">
+              <button>Buy</button>
+            </form>
+          </td>
+          <td>
+            <form action="{{ url_for('button_clicked_sell_trainer') }}" method="post">
+              <input type="hidden" name="row_data" value="{{row['name']}}">
+              <button>Sell</button>
+            </form>
+          </td>
         </tr>
       {% endfor %}
     </table>
@@ -37,12 +62,19 @@
         <th>Name</th>
         <th>Money</th>
         <th>Reward</th>
+        <th></th>
       </tr>
       {% for row in gl_data %}
         <tr>
           <td>{{ row['name'] }}</td>
           <td>{{ row['money'] }}</td>
           <td>{{ row['reward'] }}</td>
+          <td>
+            <form action="{{ url_for('button_clicked_battle_trainer') }}" method="post">
+              <input type="hidden" name="row_data" value="{{row['name']}}">
+              <button>Battle</button>
+            </form>
+          </td>
         </tr>
       {% endfor %}
     </table>
