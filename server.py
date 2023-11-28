@@ -773,7 +773,7 @@ def button_clicked_give_item_pokemon():
     itemid = request.form.get('itemid')
     sel_give_itemid, _ = get_selected_give_item()
     
-    print(f"[775] Button clicked for row: {pokeid}")
+    print(f"Button clicked for row: {pokeid}")
     print(f"Button clicked for row: {itemid}")
 
     cursor = g.conn.execute(text(f"""
@@ -889,7 +889,7 @@ def pokemon():
     # [**] get my pokemon
     # [*] also display pokemon that don't hold an item
     cursor = g.conn.execute(text(f"""
-                                SELECT P.PokeID, A.Name, P.PowerLVL, A.Cost, A2.Name AS "Held Item"
+                                SELECT P.PokeID, A.Name, P.PowerLVL, A.Cost, A2.Name AS "Held Item", A2.Asset_ID AS ItemID
                                 FROM Pokemon P
                                 INNER JOIN Owns O ON O.Asset_ID = P.PokeID
                                 INNER JOIN Asset A ON A.Asset_ID = O.Asset_ID
@@ -913,14 +913,34 @@ def pokemon():
 # [**] BUTTON_CLICKED_TAKE_ITEM
 @app.route('/button_clicked_take_item/', methods=['POST'])
 def button_clicked_take_item():
-    # row_data contains pokeid
-    row_data = request.form.get('row_data')
-    
-    # [***] update pokemon table
+    pokeid = request.form.get('pokeid')
+    itemid = request.form.get('itemid')
+    my_trainid, _, _, _ = get_current()
 
-    # [***] update holds table
+    print(f"pokeid: {pokeid}")
+    print(f"itemid: {itemid}")
 
-    print(f"Button clicked for row: {row_data}")
+    if itemid == None:
+        print("Pokemon is not holding an item")
+        pass
+    else:
+        print("Take the item")
+        # [*] update owns table
+        g.conn.execute(text(f"""
+                            INSERT INTO Owns (trainid, asset_id)
+                            VALUES ('{my_trainid}', '{itemid}')
+                            """))
+        g.conn.commit()
+
+
+        # [*] update holds table
+        g.conn.execute(text(f"""
+                            DELETE
+                            FROM HOLDS H
+                            WHERE H.pokeid = '{pokeid}'
+                            """))
+        g.conn.commit()
+
     return redirect(url_for('pokemon'))
 
 # [*] ======= GET_CURRENT =========
